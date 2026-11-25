@@ -1,0 +1,5 @@
+{
+  "name": "IdlePet.Domain",
+  "rootNamespace": "IdlePet.Domain",
+  "noEngineReferences": true
+}

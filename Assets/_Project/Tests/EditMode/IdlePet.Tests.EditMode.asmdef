@@ -1,0 +1,8 @@
+{
+  "name": "IdlePet.Tests.EditMode",
+  "rootNamespace": "IdlePet.Tests.EditMode",
+  "references": ["IdlePet.Domain", "IdlePet.Application"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false,
+  "optionalUnityReferences": ["TestAssemblies"]
+}
