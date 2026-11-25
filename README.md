@@ -6,7 +6,8 @@
 Unity 6000.6.7f1 / URP 17.6.0. Unity CLI и Pipeline 1.0.1, Codex с официальным Unity Agent Plugin 0.1.10-beta. Blender MCP и Mixamo — инструменты будущего арт-пайплайна. Git LFS для бинарных ассетов по TD-004.
 
 ## Документация
-- [GDD v1.1](docs/design/GDD.md) — дизайн.
+- [GDD v1.2](docs/design/GDD.md) — дизайн.
+- [Освещение и сон](docs/design/lighting-and-sleep.md) — правила MVP.
 - [Решения](docs/decisions.md) и [открытые вопросы](docs/open-items.md).
 - [TDD v0.1](docs/technical/TDD.md) — проект архитектуры.
 - [Уведомления](docs/design/notifications.md) — предложение.

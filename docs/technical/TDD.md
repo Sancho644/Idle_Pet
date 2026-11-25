@@ -2,7 +2,7 @@
 
 - Version: 0.1 | 25.11.2026
 - Status: technical design proposal. The scope approved for T00 is recorded in [TD-001–TD-006](../decisions.md). The rest of this design remains open.
-- Design baseline: GDD v1.1 (GD-001–010). Notifications are a proposed extension, pending approval; Windows scheduling requires a platform spike.
+- Design baseline: GDD v1.2 (GD-001–GD-020), including the MVP rules for [lighting and sleep](../design/lighting-and-sleep.md). Platform notifications remain a proposal pending separate approval. Windows scheduling requires a platform spike.
 - Target: Windows (Steam), Android (Google Play), free-to-play, single active pet, 3D cozy room.
 
 ## 1. Architectural goals
@@ -92,6 +92,16 @@ RoomDefinition has size, valid cells, fixed obstacles, spawn, surface/anchor rul
 
 FurnitureDefinition: stable ID, footprint, supported actions, interaction slots, effect definitions, price, view prefab reference in authoring. ModifierResolver computes flat and percentage effects with explicit stacking, caps and rounding; proposed additive within category then multiply categories; tune separately. Passive effects only from eligible placed objects; active effect only after successful logical interaction. Avoid unlimited stacking exploit and double count. Room comfort derived from placements and cleanliness, can affect decay or evolution where rules define. Per-room layouts; room switching preserves only one active pet. New room unlock rules and payments later.
 
+### 8.1. Lighting and sleep (proposed implementation)
+
+GD-011–GD-020 define the gameplay behavior. The types and data flow below are proposed implementation details.
+
+- `PetTraits` represents extensible individual traits such as `FearOfDarkness`. The proposal stores stable trait IDs in pet state so the same traits are available after save/load and during offline simulation. Trait assignment and probabilities remain open.
+- `RoomLightingState` holds the main light switch and the saved state of controlled sources. `LightSourceDefinition` describes a source using a stable definition ID and authored illumination and sleep suitability. `LightSourceState` records the instance ID and on/off state. A `Lighting` furniture category groups controllable sources such as night lights and lamps.
+- `SleepQualityCalculator` is proposed as a pure domain calculation. It receives the pet's traits, logical source states, authored light definitions and the natural light derived from `WorldClock`. Its output informs sleep quality and energy recovery. Exact formulas, brightness thresholds, suitability and coefficients remain open.
+- `SetLight` advances the simulation to the command time before changing logical source state. Sleep and energy recovery use the same rules in live and offline simulation. The simulation accounts for relevant natural-light changes as the accelerated day progresses, including during sleep. Save and restore source states with the simulation cursor for catch-up under GD-003.
+- Presentation maps logical state to Unity lights and renders the in-game request to switch off the main light. Unity lighting, exposure, shaders and frame rendering are presentation details. The optional platform notification planner could forecast light-change requests on an independent simulation snapshot.
+
 ## 9. Save and load
 
 SaveEnvelope: schemaVersion, content/rules version, lastSimulatedUtc, payload, optional integrity checksum (not anti-cheat). JSON file in persistentDataPath. Write temp file, flush/close, replace with platform-appropriate atomic strategy where supported, retain previous valid backup. Validate on read, recover backup, migrate sequentially, do not overwrite corrupt data silently. A save timestamp represents state actually simulated to that instant, not arbitrary current time. Save after critical actions (death, new egg, purchases, placements, evolution), periodic autosave, pause/focus lifecycle as appropriate, and quit best effort. Android pause/resume and process kill tested; do not rely only on OnApplicationQuit. Prevent duplicate load/catch-up on multiple lifecycle callbacks. Cloud saves/cross-platform synchronization not in MVP; local saves independent across devices. No automatic data deletion on migration failure.
@@ -100,9 +110,11 @@ SaveEnvelope: schemaVersion, content/rules version, lastSimulatedUtc, payload, o
 
 NotificationPlanner advances a cloned snapshot through future events (finite scheduling horizon, not a limit on simulation). Derive warnings for hunger, boredom, hygiene, health, critical conditions, growth; avoid messages after predicted death. Deduplicate by generation and event; cancel stale scheduled IDs and recompute after state/config/settings changes or backgrounding. Persist current schedule metadata if useful; reconcile on launch. In-game notices while active, system notices while backgrounded/closed. User controls categories, permissions and optional quiet hours; quiet hours do not pause life. No server required for MVP. Android local notifications via package, runtime permission and delivery restrictions. Windows native toast adapter: validate registration/app identity, scheduled delivery without game process, activation, cancellation and uninstall behavior in unpackaged Steam build. If scheduling unsupported, evaluate opt-in lightweight helper/Task Scheduler or revise platform requirements; do not claim it works until tested. Delivery is best effort (power off, do-not-disturb, OS limits); never drives state. Forecast horizon independent of full elapsed simulation. Settings and concrete notification types need approval.
 
+Forecasting requests to change the lighting is a proposal for this subsystem. The in-game request to turn off the main light follows GD-012 and is available independently of platform delivery and permissions. Tests for forecast invalidation after light changes apply if the notification proposal is approved. [Notification design](../design/notifications.md)
+
 ## 11. Game flow and scene layout
 
-Bootstrap -> Load/Validate -> OfflineCatchUp -> DeathSummary or EggSetup or RoomGameplay. RoomGameplay has CareMode and BuildMode; pause menu does not pause real-time simulation under GD-003 unless design explicitly changes. Background saves and schedules; resume cancels stale notices, catches up then restores presentation. Scene plan: Bootstrap (persistent composition root), Room (room prefab, pet view, lighting, grid, camera, UI), mini-game scene later/additive only when needed. Scene changes do not reset game state. No duplicate persistent managers. Room view owns rendering objects, not canonical state. Evolution replaces visual prefab using form ID; runtime state remains consistent.
+Bootstrap -> Load/Validate -> OfflineCatchUp -> DeathSummary or EggSetup or RoomGameplay. RoomGameplay has CareMode and BuildMode; pause menu does not pause real-time simulation under GD-003 unless design explicitly changes. Backgrounding saves state. Resume catches up and restores presentation. The proposed notification subsystem would schedule on backgrounding and cancel stale notices on resume before catch-up. Scene plan: Bootstrap (persistent composition root), Room (room prefab, pet view, lighting, grid, camera, UI), mini-game scene later/additive only when needed. Scene changes do not reset game state. No duplicate persistent managers. Room view owns rendering objects, not canonical state. Evolution replaces visual prefab using form ID; runtime state remains consistent.
 
 ## 12. Configuration and content production
 
@@ -112,17 +124,19 @@ ScriptableObjects: PetDefinitionSO, PetFormSO, PersonalitySO, EvolutionRuleSO, N
 
 EditMode: rate integration, clamping, threshold crossing, deterministic RNG, same outcome for one long vs multiple short advances, offline death, no replacement while alive, evolution history, forecast immutability, inventory/grid validation, modifier stacking, migration, corrupt save recovery, clock rollback and duplicate lifecycle calls. Include 8h/24h/7d/365d scenarios; compare simulation results, no elapsed cap. Performance acceptance after benchmarking target device; no unjustified numeric budget. PlayMode: input, placement/navigation reachability, interrupted interaction, animation adapter, scene recreation, save-resume, UI state. Device/build tests: Android permission denial, background kill, reboot/power modes; Windows unpackaged toast registration, scheduling/cancel, click activation, shutdown/restart; no guaranteed delivery. Verify same save-state semantics regardless of notification availability.
 
+Lighting acceptance covers the main light switch and in-game sleep request, the effect of logical lighting on energy recovery, comfort for pets with `FearOfDarkness` when a suitable lamp is on, source-state save/load, and live/offline equivalence across a day/night transition. Use explicitly marked test balance values until tuning is approved. Cover controls and visual mapping in the first playable room. [Lighting acceptance scenarios](../design/lighting-and-sleep.md)
+
 ## 14. Implementation backlog (ordered)
 
 T00: Apply TD-001–TD-006. Verify the minimal assembly graph, EditMode discovery, LFS and both Development builds. VContainer is deferred until Bootstrap.
 T01: Domain state, stable definitions, fake clock/RNG, bounded needs, simulation engine; pure tests.
-T02: Care commands and basic logical actions, life stages, illness/death/new egg, history; tests including offline equivalence.
-T03: Save envelope, migration/backup, app pause/resume, game flow; tests for restore and full offline catch-up.
+T02: Care commands and basic logical actions, life stages, illness/death/new egg, history, logical lighting, sleep quality and in-game light request. Verify the `FearOfDarkness` cases.
+T03: Save envelope, migration/backup, app pause/resume, game flow. Verify restored light states and sleep and energy recovery across full offline catch-up.
 T04: Windows Toast feasibility in an unpackaged Steam-compatible build. Notification planner, editor mock and Android feasibility after separate notification approval. Add delivery adapters after verification.
-T05: Graybox room and pet, camera/input, UI, day/night, ground navigation, action presentation.
-T06: Grid, inventory, furniture interactions, modifiers, validation, accessibility.
+T05: Graybox room and pet, camera/input, UI, natural lighting and day/night, main light controls and request presentation, ground navigation.
+T06: Grid, inventory, furniture interactions, controllable lamps and night lights, modifiers, validation, accessibility.
 T07: Evolution rules, collection, persistent generation progress once rules approved, two anatomy adapters and test content.
-T08: Shop/economy, mini-game, full care polish, notification settings, art pipeline; no real payments yet.
+T08: Shop/economy, mini-game, full care polish, art pipeline. Notification settings depend on separate approval. Real-money payments remain outside MVP.
 T09: MVP balance, profiling, platform QA, release decisions.
 
 First technical milestone T00–T03: create pet, advance time, apply care, save and resume after a simulated multi-day absence, record terminal death and allow a new generation. Deterministic tests pass. Next vertical slice T04–T06: one room with three functional objects, pet can eat/sleep/play, layout works, UI updates and state saves and restores. Record notification feasibility separately under T04.
