@@ -26,5 +26,39 @@ namespace IdlePet.Tests.EditMode
             Assert.That(testReferences, Has.Member(domain.name).And.Member(application.name));
             Assert.That(domainUnityReferences, Is.Empty);
         }
+
+        [Test]
+        public void AuthoringAndEditorExtendTheAcyclicGraphWithoutEnteringDomainOrPlayerEditorCode()
+        {
+            var editorAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor);
+            var playerAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
+            var domain = editorAssemblies.Single(assembly => assembly.name == "IdlePet.Domain");
+            var application = editorAssemblies.Single(assembly => assembly.name == "IdlePet.Application");
+            var authoring = editorAssemblies.Single(assembly => assembly.name == "IdlePet.Authoring");
+            var editor = editorAssemblies.Single(assembly => assembly.name == "IdlePet.Editor");
+            var tests = editorAssemblies.Single(assembly => assembly.name == "IdlePet.Tests.EditMode");
+
+            Assert.That(ProjectReferences(domain), Is.Empty);
+            Assert.That(ProjectReferences(application), Is.EquivalentTo(new[] { domain.name }));
+            Assert.That(ProjectReferences(authoring), Is.EquivalentTo(new[] { domain.name }));
+            Assert.That(ProjectReferences(editor), Is.EquivalentTo(new[] { authoring.name, domain.name }));
+            Assert.That(ProjectReferences(tests), Is.EquivalentTo(new[] { domain.name, application.name, authoring.name, editor.name }));
+
+            var engineReferences = application.compiledAssemblyReferences.Select(Path.GetFileName)
+                .Where(name => name.StartsWith("UnityEngine", StringComparison.Ordinal) ||
+                    name.StartsWith("UnityEditor", StringComparison.Ordinal));
+            Assert.That(engineReferences, Is.Empty);
+            var playerNames = playerAssemblies.Select(assembly => assembly.name).ToArray();
+            Assert.That(playerNames, Has.Member(authoring.name));
+            Assert.That(playerNames, Has.No.Member(editor.name));
+            Assert.That(playerNames, Has.No.Member(tests.name));
+        }
+
+        private static string[] ProjectReferences(Assembly assembly)
+        {
+            return assembly.assemblyReferences.Select(reference => reference.name)
+                .Where(name => name.StartsWith("IdlePet.", StringComparison.Ordinal))
+                .ToArray();
+        }
     }
 }

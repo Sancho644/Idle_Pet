@@ -1,0 +1,5 @@
+{
+  "name": "IdlePet.Authoring",
+  "rootNamespace": "IdlePet.Authoring",
+  "references": ["IdlePet.Domain"]
+}

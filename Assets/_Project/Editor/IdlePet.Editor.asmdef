@@ -1,0 +1,6 @@
+{
+  "name": "IdlePet.Editor",
+  "rootNamespace": "IdlePet.Editor",
+  "references": ["IdlePet.Authoring", "IdlePet.Domain"],
+  "includePlatforms": ["Editor"]
+}
