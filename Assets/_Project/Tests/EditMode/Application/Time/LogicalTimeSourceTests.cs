@@ -27,7 +27,7 @@ namespace IdlePet.Tests.EditMode.Application.Time
         {
             var fake = new FakeClock(new LogicalTime(1_000));
             ILogicalTimeSource source = fake;
-            var state = new GameState(2_000, null);
+            var state = new GameState(2_000, null, 42UL);
             var reports = new[] { 1_000L, 2_000L, 1_500L, 2_000L, 3_000L };
             var expected = new[] { (false, 0L), (true, 0L), (false, 0L), (true, 0L), (true, 1_000L) };
 

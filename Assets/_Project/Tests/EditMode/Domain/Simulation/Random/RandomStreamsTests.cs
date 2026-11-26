@@ -127,7 +127,7 @@ namespace IdlePet.Tests.EditMode.Domain.Simulation.Random
         [Test]
         public void ReadingRngAndItsMetadataDoesNotChangeGameState()
         {
-            var state = new GameState(123, null);
+            var state = new GameState(123, null, 42UL);
             var world = RandomStreams.Create(42);
             var snapshot = world.CaptureSnapshot();
 

@@ -17,7 +17,7 @@ namespace IdlePet.Tests.EditMode.Domain.State
         {
             var definition = NeedTestData.CreateDefinition();
             var id = new PetId("pet.test-1");
-            var game = new GameState(4_294_967_296L, new PetState(id, NeedsState.Create(definition)));
+            var game = new GameState(4_294_967_296L, new PetState(id, NeedsState.Create(definition)), 42UL);
 
             Assert.That(game.LogicalTimeMilliseconds, Is.EqualTo(4_294_967_296L));
             Assert.That(game.ActivePet.Id, Is.EqualTo(id));
@@ -36,14 +36,15 @@ namespace IdlePet.Tests.EditMode.Domain.State
             var fromSave = NeedTestData.CreateValues(definition);
             fromSave[NeedId.Satiety] = NeedTestData.Value(1_234, 3_599_999);
             fromSave[NeedId.Energy] = NeedTestData.Value(4_321, 1);
-            var original = new GameState(long.MaxValue, new PetState(new PetId("pet.snapshot"), NeedsState.Restore(definition, fromSave)));
+            var original = new GameState(long.MaxValue, new PetState(new PetId("pet.snapshot"), NeedsState.Restore(definition, fromSave)), 42UL);
 
             var copiedValues = original.ActivePet.Needs.Values.Select(entry =>
                 new KeyValuePair<NeedId, NeedValue>(
                     (NeedId)(int)entry.Key,
                     new NeedValue(entry.Value.MilliUnits, new NeedRemainder(entry.Value.Remainder.Numerator))));
-            var restored = new GameState(original.LogicalTimeMilliseconds,
-                new PetState(new PetId(original.ActivePet.Id.Value), NeedsState.Restore(definition, copiedValues)));
+            var restored = GameState.Restore(original.LogicalTimeMilliseconds,
+                new PetState(new PetId(original.ActivePet.Id.Value), NeedsState.Restore(definition, copiedValues)), original.Rng, original.EventQueue,
+                original.ActiveModifierIds, original.ProcessedEventsAtCursor);
 
             Assert.That(restored.LogicalTimeMilliseconds, Is.EqualTo(long.MaxValue));
             Assert.That(restored.ActivePet.Id, Is.EqualTo(original.ActivePet.Id));
@@ -55,7 +56,7 @@ namespace IdlePet.Tests.EditMode.Domain.State
         [Test]
         public void EmptyGameRetainsCursorWithoutCreatingPet()
         {
-            var game = new GameState(0, null);
+            var game = new GameState(0, null, 42UL);
 
             Assert.That(game.LogicalTimeMilliseconds, Is.Zero);
             Assert.That(game.ActivePet, Is.Null);
@@ -66,7 +67,7 @@ namespace IdlePet.Tests.EditMode.Domain.State
         {
             var needs = NeedsState.Create(NeedTestData.CreateDefinition());
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => new GameState(-1, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new GameState(-1, null, 42UL));
             Assert.Throws<ArgumentException>(() => new PetState(default, needs));
             Assert.Throws<ArgumentNullException>(() => new PetState(new PetId("pet"), null));
         }
@@ -75,11 +76,11 @@ namespace IdlePet.Tests.EditMode.Domain.State
         public void GamesUsingSharedDefinitionsOwnIndependentNeeds()
         {
             var definition = NeedTestData.CreateDefinition();
-            var first = new GameState(12, new PetState(new PetId("pet.1"), NeedsState.Create(definition)));
+            var first = new GameState(12, new PetState(new PetId("pet.1"), NeedsState.Create(definition)), 42UL);
             var source = NeedTestData.CreateValues(definition);
             var restoredSatiety = NeedTestData.Value(2_000, 1);
             source[NeedId.Satiety] = restoredSatiety;
-            var second = new GameState(20, new PetState(new PetId("pet.2"), NeedsState.Restore(definition, source)));
+            var second = new GameState(20, new PetState(new PetId("pet.2"), NeedsState.Restore(definition, source)), 42UL);
 
             source[NeedId.Satiety] = NeedTestData.Value(5_000);
 

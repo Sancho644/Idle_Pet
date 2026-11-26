@@ -85,7 +85,7 @@ namespace IdlePet.Tests.EditMode.Domain.Simulation.Time
         [TestCase(long.MaxValue, 0L, false, 0L)]
         public void ValidatesTargetsAgainstTheProcessedCursor(long cursor, long target, bool accepted, long milliseconds)
         {
-            var state = new GameState(cursor, null);
+            var state = new GameState(cursor, null, 42UL);
             var current = SimulationClock.GetTime(state);
 
             var allowed = SimulationClock.TryGetElapsed(current, new LogicalTime(target), out var elapsed);

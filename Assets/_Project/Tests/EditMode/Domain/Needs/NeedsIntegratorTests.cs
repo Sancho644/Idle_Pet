@@ -92,7 +92,7 @@ namespace IdlePet.Tests.EditMode.Domain.Needs
             var definition = CreateNeedsDefinition(_ => 2);
             var first = NeedsState.Create(definition);
             var second = NeedsState.Create(definition);
-            var game = new GameState(1000, new PetState(new PetId("first"), first));
+            var game = new GameState(1000, new PetState(new PetId("first"), first), 42UL);
             var clock = new FakeClock(new LogicalTime(1005));
             var rates = new EffectiveNeedRates(definition.Entries.Values.Select(entry => KeyValuePair.Create(entry.Id, entry.BaseRate)));
 

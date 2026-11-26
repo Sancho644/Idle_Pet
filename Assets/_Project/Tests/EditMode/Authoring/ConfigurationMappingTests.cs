@@ -78,11 +78,11 @@ namespace IdlePet.Tests.EditMode.Authoring
         {
             using var fixture = new ConfigurationFixture();
             var definitions = Map(fixture).Needs;
-            var first = new GameState(0, new PetState(new PetId("first"), NeedsState.Create(definitions)));
+            var first = new GameState(0, new PetState(new PetId("first"), NeedsState.Create(definitions)), 42UL);
             var snapshot = first.ActivePet.Needs.Values.ToDictionary(entry => entry.Key, entry => entry.Value);
             snapshot[NeedId.Satiety] = new NeedValue(20_000, new NeedRemainder(125));
 
-            var second = new GameState(20, new PetState(new PetId("second"), NeedsState.Restore(definitions, snapshot)));
+            var second = new GameState(20, new PetState(new PetId("second"), NeedsState.Restore(definitions, snapshot)), 42UL);
 
             Assert.That(second.ActivePet.Needs[NeedId.Satiety].Remainder.Numerator, Is.EqualTo(125));
             Assert.That(first.ActivePet.Needs[NeedId.Satiety].MilliUnits, Is.EqualTo(12_345));
