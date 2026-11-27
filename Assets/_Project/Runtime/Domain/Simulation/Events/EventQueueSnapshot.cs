@@ -9,6 +9,21 @@ namespace IdlePet.Domain.Simulation.Events
         public static EventQueueSnapshot Empty { get; } = new EventQueueSnapshot(Array.Empty<ScheduledEvent>(), 0);
 
         public EventQueueSnapshot(IEnumerable<ScheduledEvent> events, long nextSequence)
+            : this(ValidateAndOrder(events, nextSequence), nextSequence)
+        {
+        }
+
+        private EventQueueSnapshot(ScheduledEvent[] ordered, long nextSequence)
+        {
+            Events = Array.AsReadOnly(ordered);
+            NextSequence = nextSequence;
+        }
+
+        // The scheduler owns the sorted set and allocates unique sequence numbers before insertion.
+        internal static EventQueueSnapshot FromScheduler(SortedSet<ScheduledEvent> events, long nextSequence) =>
+            new EventQueueSnapshot(events.ToArray(), nextSequence);
+
+        private static ScheduledEvent[] ValidateAndOrder(IEnumerable<ScheduledEvent> events, long nextSequence)
         {
             if (nextSequence < 0)
             {
@@ -26,8 +41,7 @@ namespace IdlePet.Domain.Simulation.Events
             }
 
             Array.Sort(ordered);
-            Events = Array.AsReadOnly(ordered);
-            NextSequence = nextSequence;
+            return ordered;
         }
 
         public IReadOnlyList<ScheduledEvent> Events { get; }

@@ -44,6 +44,10 @@ TD-008 определяет архитектуру, а TD-014 закрепляе
 - Definitions не содержат Unity-типов и не изменяются симуляцией. Разные `GameState` используют общий набор definitions без общего изменяемого состояния.
 - Проверяется маппинг шести типов первого среза и выбор допустимого профиля. Критические ошибки блокируют сборку после реализации валидатора. Каталоги будущих систем, VContainer и пакет Unity Localization планируются на соответствующие этапы после согласования. [Критерии ядра](simulation-engine.md)
 
+## Профили Balance Simulation Lab
+
+Lab использует фактический Production и общий `GameConfigMapper`. Для FastTesting и StressTesting он клонирует шесть существующих ScriptableObject в памяти редактора, маппит их через `ConfigurationTarget.Testing` и освобождает клоны. Изменения тестовых значений после маппинга сохраняют ранее выданные definitions, состояния и результаты. `ConfigurationTarget.Release` принимает Production. Проверки графа зависимостей и Editor-only размещения принадлежат общему валидатору. Состав реального Player проверяется в T05. [Balance Simulation Lab](balance-simulation-lab.md)
+
 ## Реализация T01.01b
 
 `GameConfigSO` ссылается на один явно выбранный `BalanceProfileSO`. Профиль содержит стабильный ID, вид профиля и ссылки на Simulation, Time, Needs и Modifiers. Версии правил и контента задаются в корневом ассете, версия баланса — в профиле. В Inspector версии записываются в формате `major.minor` или `major.minor.patch`.

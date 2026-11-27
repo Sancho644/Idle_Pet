@@ -41,7 +41,7 @@ namespace IdlePet.Tests.EditMode
             Assert.That(ProjectReferences(domain), Is.Empty);
             Assert.That(ProjectReferences(application), Is.EquivalentTo(new[] { domain.name }));
             Assert.That(ProjectReferences(authoring), Is.EquivalentTo(new[] { domain.name }));
-            Assert.That(ProjectReferences(editor), Is.EquivalentTo(new[] { authoring.name, domain.name }));
+            Assert.That(ProjectReferences(editor), Is.EquivalentTo(new[] { authoring.name, domain.name, application.name }));
             Assert.That(ProjectReferences(tests), Is.EquivalentTo(new[] { domain.name, application.name, authoring.name, editor.name }));
 
             var engineReferences = application.compiledAssemblyReferences.Select(Path.GetFileName)

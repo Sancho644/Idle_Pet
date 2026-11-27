@@ -8,16 +8,18 @@ namespace IdlePet.Domain.Simulation.Events
 {
     internal sealed class EventScheduler
     {
-        private readonly SortedSet<ScheduledEvent> _events;
+        private readonly EventQueueSnapshot _snapshot;
+        private SortedSet<ScheduledEvent> _events;
         private long _nextSequence;
 
         internal EventScheduler(EventQueueSnapshot snapshot)
         {
-            _events = new SortedSet<ScheduledEvent>(snapshot.Events);
+            _snapshot = snapshot;
             _nextSequence = snapshot.NextSequence;
         }
 
-        internal ScheduledEvent First => _events.Min;
+        internal ScheduledEvent First => _events != null ? _events.Min :
+            _snapshot.Events.Count == 0 ? null : _snapshot.Events[0];
 
         internal ScheduledEvent Register(LogicalTime time, EventRequest request)
         {
@@ -28,24 +30,32 @@ namespace IdlePet.Domain.Simulation.Events
 
             long nextSequence = checked(_nextSequence + 1);
             var scheduled = new ScheduledEvent(request, _nextSequence);
-            _events.Add(scheduled);
+            MutableEvents.Add(scheduled);
             _nextSequence = nextSequence;
             return scheduled;
         }
 
-        internal void Remove(ScheduledEvent entry) => _events.Remove(entry);
+        internal void Remove(ScheduledEvent entry) => MutableEvents.Remove(entry);
 
         internal bool Cancel(long sequence)
         {
-            var entry = _events.FirstOrDefault(candidate => candidate.Sequence == sequence);
-            return entry != null && _events.Remove(entry);
+            var entry = CurrentEvents.FirstOrDefault(candidate => candidate.Sequence == sequence);
+            return entry != null && MutableEvents.Remove(entry);
         }
 
         internal void CancelPetLife(PetId petId)
         {
-            _events.RemoveWhere(entry => entry.Request.Scope == EventScope.PetLife && entry.Request.PetId.Value.Equals(petId));
+            bool IsPetLife(ScheduledEvent entry) => entry.Request.Scope == EventScope.PetLife && entry.Request.PetId.Value.Equals(petId);
+            if (_events != null || _snapshot.Events.Any(IsPetLife))
+            {
+                MutableEvents.RemoveWhere(IsPetLife);
+            }
         }
 
-        internal EventQueueSnapshot Capture() => new EventQueueSnapshot(_events, _nextSequence);
+        internal EventQueueSnapshot Capture() => _events == null ? _snapshot : EventQueueSnapshot.FromScheduler(_events, _nextSequence);
+
+        private IEnumerable<ScheduledEvent> CurrentEvents => (IEnumerable<ScheduledEvent>)_events ?? _snapshot.Events;
+
+        private SortedSet<ScheduledEvent> MutableEvents => _events ??= new SortedSet<ScheduledEvent>(_snapshot.Events);
     }
 }

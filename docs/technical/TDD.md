@@ -1,7 +1,7 @@
 # Technical Design Document — 3D Cozy Tamagotchi
 
 - Version: 0.2 | 25.11.2026
-- Status — DESIGN accepted by the user. T01 is ready and awaits a separate implementation request. [Decision register](../decisions.md)
+- Status — DESIGN and T01 are complete and accepted by the user. T01 integration into main awaits authorization to merge. [Decision register](../decisions.md)
 - Design baseline — [GDD v1.3](../design/GDD.md), SD-01–SD-15, TD-007–TD-017 and the accepted audit. Platform delivery remains open under T04.
 - DESIGN finalization — R-01–R-05 are incorporated. TD-015–TD-017 close the last arithmetic, scheduling and PCG32 questions. Version 0.2 is retained. [Simulation engine contract](simulation-engine.md)
 - Target: Windows (Steam), Android (Google Play), free-to-play, single active pet, 3D cozy room.
@@ -114,13 +114,13 @@ Automatic validation checks required links, ranges, uniqueness, referential inte
 
 Use the [T01 acceptance scenarios](simulation-engine.md) for EditMode: logical time, fixed-point precision and reversal at bounds, snapshots and partitions, ordering and stabilization, exactly-once effects, PCG32 streams and Forecast. T01 verifies a minimal terminal state. Full gameplay death rules and their tests belong to T02. Ruleset changes, save migration, resource conservation, sleep and light and digestion are verified as their systems are delivered.
 
-The Balance Simulation Lab runs on the same simulation engine, with structured scenarios, profiles and reproducible seeds. Start with automated scenarios and extend the Editor tooling with coverage. `Production`, `FastTesting` and `StressTesting` are separate profiles. Release content uses Production. Measure on target devices, and treat proposed performance budgets as hypotheses until measured. [Balance, scenarios and profiles](../design/balance-v0.1.md)
+The Balance Simulation Lab runs on the same simulation engine, with structured scenarios, profiles and reproducible seeds. T01.03b adds an Editor-only window under Tools → Idle Pet → Balance Simulation Lab, with XML export and structural comparison of AdvanceTo and Forecast. IdlePet.Editor references IdlePet.Application. [Editor workflow and profiles](balance-simulation-lab.md) `Production`, `FastTesting` and `StressTesting` are separate profiles. Release content uses Production. Measure on target devices, and treat proposed performance budgets as hypotheses until measured. [Balance, scenarios and profiles](../design/balance-v0.1.md)
 
 PlayMode and device checks cover controls, logical-to-visual state, including light and navigation, background/kill, and later platform notifications. Physical Android launch and visual Windows verification remain first-playable tasks. T00's existing results are listed in [setup.md](setup.md).
 
 ## 14. Implementation sequence
 
-T00 and DESIGN are accepted. T01 is ready and awaits a separate implementation request. T01 proceeds through Domain Foundation, Simulation Core, then Forecast & Verification. Each subtask has its own authorization. Complex care, sleep, illnesses, platform time, digestion, furniture, evolution and notifications arrive in later stages. [Roadmap](../roadmap.md) · [Backlog](../backlog.md)
+T00, DESIGN and T01 are complete and accepted. T01 delivered Domain Foundation, Simulation Core, and Forecast & Verification. T02 requires a separate user request after T01 is integrated into main. Complex care, sleep, illnesses, platform time, digestion, furniture, evolution and notifications arrive in later stages. [Roadmap](../roadmap.md) · [Backlog](../backlog.md)
 
 ## 15. Open decisions and risks
 
