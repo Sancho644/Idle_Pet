@@ -1,0 +1,31 @@
+namespace IdlePet.Authoring.Mapping
+{
+    public enum ConfigurationIssueCode
+    {
+        MissingRoot,
+        AmbiguousRoot,
+        IncorrectRootPath,
+        MissingReference,
+        MissingProductionProfile,
+        NonProductionProfile,
+        InvalidVersion,
+        InvalidId,
+        DuplicateId,
+        UnknownEnumValue,
+        MissingNeed,
+        DuplicateNeed,
+        ComputedNeed,
+        InvalidRange,
+        InitialValueOutOfRange,
+        ThresholdOutOfRange,
+        DuplicateThreshold,
+        InvalidNumber,
+        InvalidPrecision,
+        NumericOverflow,
+        InvalidCoefficient,
+        InvalidDuration,
+        InvalidNightWindow,
+        InvalidEventLimit,
+        TestProfileInPlayerDependencies
+    }
+}
