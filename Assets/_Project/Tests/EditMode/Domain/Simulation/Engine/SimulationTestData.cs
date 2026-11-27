@@ -42,7 +42,7 @@ namespace IdlePet.Tests.EditMode.Domain.Simulation.Engine
 
         internal static SimulationEngine CreateEngine(GameConfiguration config,
             params (string Id, Action<SimulationEventContext, ScheduledEvent> Handle)[] rules) =>
-            new SimulationEngine(config, rules.Select(rule => KeyValuePair.Create(rule.Id, rule.Handle)));
+            SimulationEngine.CreateForTests(config, rules.Select(rule => KeyValuePair.Create(rule.Id, rule.Handle)));
 
         internal static EventRequest Event(long time, string type = "mark", int priority = 10, string source = "tech",
             string text = null, PetId? pet = null) =>
@@ -102,7 +102,7 @@ namespace IdlePet.Tests.EditMode.Domain.Simulation.Engine
             TestContext.Out.WriteLine("IDLEPET_REVIEW " + report.ToString(SaveOptions.DisableFormatting));
         }
 
-        private static XElement Result(string label, SimulationResult result) => new XElement(label,
+        internal static XElement Result(string label, SimulationResult result) => new XElement(label,
             new XAttribute("status", result.Status), new XAttribute("targetMs", result.Target.Milliseconds),
             result.Reached.HasValue ? new XAttribute("reachedMs", result.Reached.Value.Milliseconds) : null,
             new XAttribute("commits", result.CommittedTransactions), new XAttribute("thresholdBoundaries", result.ThresholdBoundaries),
@@ -112,7 +112,7 @@ namespace IdlePet.Tests.EditMode.Domain.Simulation.Engine
                 result.Diagnostic.Limit.HasValue ? new XAttribute("limit", result.Diagnostic.Limit.Value) : null,
                 result.Diagnostic.Event == null ? null : Record(result.Diagnostic.Event)));
 
-        private static XElement State(string label, GameState state) => new XElement(label,
+        internal static XElement State(string label, GameState state) => new XElement(label,
             new XAttribute("timeMs", state.LogicalTimeMilliseconds), new XAttribute("nextSequence", state.EventQueue.NextSequence),
             new XAttribute("eventsAtCursor", state.ProcessedEventsAtCursor),
             new XAttribute("pet", state.ActivePet?.Id.Value ?? ""),
@@ -130,7 +130,7 @@ namespace IdlePet.Tests.EditMode.Domain.Simulation.Engine
                 new XAttribute("milliUnits", pair.Value.MilliUnits), new XAttribute("remainder", pair.Value.Remainder.Numerator),
                 new XAttribute("exact", pair.Value.ExactNumerator))));
 
-        private static XElement Record(ScheduledEvent entry) => Record(entry.Request, entry.Sequence);
+        internal static XElement Record(ScheduledEvent entry) => Record(entry.Request, entry.Sequence);
 
         private static XElement Record(EventRequest request, long? sequence = null) =>
             new XElement("event", new XAttribute("timestampMs", request.Timestamp.Milliseconds),

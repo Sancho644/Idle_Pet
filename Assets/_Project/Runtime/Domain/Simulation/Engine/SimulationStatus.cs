@@ -9,6 +9,7 @@ namespace IdlePet.Domain.Simulation.Engine
         CommandApplied,
         CommandRejected,
         Fault,
-        InitializationFailed
+        InitializationFailed,
+        UnsupportedRuleSet
     }
 }

@@ -7,6 +7,7 @@ using IdlePet.Domain.Pet.Needs;
 using IdlePet.Domain.Simulation.Commands;
 using IdlePet.Domain.Simulation.Events;
 using IdlePet.Domain.Simulation.Modifiers;
+using IdlePet.Domain.Simulation.Rules;
 using IdlePet.Domain.Simulation.Time;
 
 namespace IdlePet.Domain.Simulation.Engine
@@ -16,18 +17,23 @@ namespace IdlePet.Domain.Simulation.Engine
         public const string ThresholdEventTypeId = "need.threshold";
 
         private readonly GameConfiguration _configuration;
-        private readonly Dictionary<string, Action<SimulationEventContext, ScheduledEvent>> _rules;
+        private readonly SimulationRuleSet _rules;
+        private readonly Dictionary<string, Action<SimulationEventContext, ScheduledEvent>> _testRules;
 
-        public SimulationEngine(GameConfiguration configuration,
-            IEnumerable<KeyValuePair<string, Action<SimulationEventContext, ScheduledEvent>>> rules = null)
+        public SimulationEngine(GameConfiguration configuration) : this(configuration, SimulationRuleSet.Empty)
+        {
+        }
+
+        internal SimulationEngine(GameConfiguration configuration, SimulationRuleSet rules)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            _rules = new Dictionary<string, Action<SimulationEventContext, ScheduledEvent>>(StringComparer.Ordinal);
-            if (rules == null)
-            {
-                return;
-            }
+            _rules = rules ?? throw new ArgumentNullException(nameof(rules));
+        }
 
+        private SimulationEngine(GameConfiguration configuration,
+            IEnumerable<KeyValuePair<string, Action<SimulationEventContext, ScheduledEvent>>> rules) : this(configuration)
+        {
+            _testRules = new Dictionary<string, Action<SimulationEventContext, ScheduledEvent>>(StringComparer.Ordinal);
             foreach (var entry in rules)
             {
                 if (!ConfigurationId.IsValid(entry.Key) || entry.Value == null)
@@ -35,9 +41,17 @@ namespace IdlePet.Domain.Simulation.Engine
                     throw new ArgumentException("Each rule needs a stable event type and a handler.", nameof(rules));
                 }
 
-                _rules.Add(entry.Key, entry.Value);
+                _testRules.Add(entry.Key, entry.Value);
             }
         }
+
+        internal static SimulationEngine CreateForTests(GameConfiguration configuration,
+            IEnumerable<KeyValuePair<string, Action<SimulationEventContext, ScheduledEvent>>> rules) =>
+            new SimulationEngine(configuration, rules ?? throw new ArgumentNullException(nameof(rules)));
+
+        public SimulationDiagnostic GetForecastBlocker(LogicalTime origin) => _testRules == null ? null :
+            new SimulationDiagnostic(SimulationFaultCode.UnsupportedRuleSet, origin, null,
+                "The engine uses delegate rules reserved for kernel tests.", null);
 
         public SimulationResult Initialize(LogicalTime time, PetState pet, ulong worldSeed, IEnumerable<EventRequest> initialEvents)
         {
@@ -80,7 +94,8 @@ namespace IdlePet.Domain.Simulation.Engine
             }
             catch (Exception error) when (IsDiagnostic(error))
             {
-                return Failure(origin, targetTime, state, trace, 0, 0, Diagnose(error, origin, null, SimulationFaultCode.InvalidState));
+                return Failure(origin, targetTime, state, trace, 0, 0,
+                    Diagnose(error, origin, null, SimulationFaultCode.InvalidState, isInputStateFailure: true));
             }
 
             int relation = targetTime.CompareTo(origin);
@@ -260,9 +275,13 @@ namespace IdlePet.Domain.Simulation.Engine
 
                 context.Queue.Remove(next);
                 context.ProcessedEvents++;
-                if (_rules.TryGetValue(next.Request.TypeId, out var handle))
+                if (_testRules != null && _testRules.TryGetValue(next.Request.TypeId, out var handle))
                 {
                     handle(context, next);
+                }
+                else
+                {
+                    _rules.Apply(next.Request.TypeId, context);
                 }
 
                 trace.Add(next);
@@ -312,7 +331,7 @@ namespace IdlePet.Domain.Simulation.Engine
                     throw new ArgumentException("A threshold event must identify a configured threshold of the living pet.", nameof(request));
                 }
             }
-            else if (!_rules.ContainsKey(request.TypeId))
+            else if (!_rules.Contains(request.TypeId) && !(_testRules?.ContainsKey(request.TypeId) ?? false))
             {
                 throw new SimulationRuleException(SimulationFaultCode.UnknownEventType, $"Unknown event type '{request.TypeId}'.");
             }
@@ -326,12 +345,13 @@ namespace IdlePet.Domain.Simulation.Engine
             !(error is OutOfMemoryException || error is StackOverflowException || error is AccessViolationException ||
                 error is AppDomainUnloadedException || error is BadImageFormatException || error is OperationCanceledException);
 
-        private SimulationDiagnostic Diagnose(Exception error, LogicalTime time, ScheduledEvent entry, SimulationFaultCode fallback)
+        private SimulationDiagnostic Diagnose(Exception error, LogicalTime time, ScheduledEvent entry, SimulationFaultCode fallback,
+            bool isInputStateFailure = false)
         {
             var code = error is SimulationRuleException rule ? rule.Code
                 : error is OverflowException ? SimulationFaultCode.Overflow : fallback;
             int? limit = code == SimulationFaultCode.EventLimit ? _configuration.Simulation.MaxEventsPerTimestamp : (int?)null;
-            return new SimulationDiagnostic(code, time, entry, error.Message, limit);
+            return new SimulationDiagnostic(code, time, entry, error.Message, limit, isInputStateFailure);
         }
 
         private static SimulationResult InitializationFailure(LogicalTime time, SimulationDiagnostic fault) =>

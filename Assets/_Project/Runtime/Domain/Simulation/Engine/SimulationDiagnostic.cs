@@ -6,13 +6,14 @@ namespace IdlePet.Domain.Simulation.Engine
     public sealed class SimulationDiagnostic
     {
         internal SimulationDiagnostic(SimulationFaultCode code, LogicalTime timestamp,
-            ScheduledEvent currentEvent, string reason, int? limit)
+            ScheduledEvent currentEvent, string reason, int? limit, bool isInputStateFailure = false)
         {
             Code = code;
             Timestamp = timestamp;
             Event = currentEvent;
             Reason = reason;
             Limit = limit;
+            IsInputStateFailure = isInputStateFailure;
         }
 
         public SimulationFaultCode Code { get; }
@@ -24,5 +25,7 @@ namespace IdlePet.Domain.Simulation.Engine
         public string Reason { get; }
 
         public int? Limit { get; }
+
+        public bool IsInputStateFailure { get; }
     }
 }

@@ -8,6 +8,7 @@ namespace IdlePet.Domain.Simulation.Engine
         InvalidPet,
         EventLimit,
         Overflow,
-        RuleFailure
+        RuleFailure,
+        UnsupportedRuleSet
     }
 }
